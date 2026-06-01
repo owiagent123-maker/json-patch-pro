@@ -1,15 +1,14 @@
 import { PatchOperation } from './index';
 
-export function validate(patch: PatchOperation[]): string[] {
+export function validate(ops: PatchOperation[]): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   const validOps = ['add', 'remove', 'replace', 'move', 'copy', 'test'];
-  for (let i = 0; i < patch.length; i++) {
-    const op = patch[i];
+  for (let i = 0; i < ops.length; i++) {
+    const op = ops[i];
     if (!validOps.includes(op.op)) errors.push(`[${i}] Invalid op: ${op.op}`);
-    if (typeof op.path !== 'string' || !op.path.startsWith('/')) errors.push(`[${i}] Invalid path: ${op.path}`);
-    if (['move', 'copy'].includes(op.op) && !op.from?.startsWith('/')) errors.push(`[${i}] Missing/invalid from for ${op.op}`);
+    if (!op.path || !op.path.startsWith('/')) errors.push(`[${i}] Invalid path: ${op.path}`);
+    if ((op.op === 'move' || op.op === 'copy') && (!op.from || !op.from.startsWith('/'))) errors.push(`[${i}] Missing/invalid from: ${op.from}`);
     if (['add', 'replace', 'test'].includes(op.op) && op.value === undefined) errors.push(`[${i}] Missing value for ${op.op}`);
-    if (['remove'].includes(op.op) && 'value' in (op as any)) errors.push(`[${i}] Remove should not have value`);
   }
-  return errors;
+  return { valid: errors.length === 0, errors };
 }
